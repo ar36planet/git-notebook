@@ -18,24 +18,22 @@ date: 2026-10-05
 
 程序可以因 GC、VM 暫停、CPU 飢餓、page fault、SIGSTOP 或主機休眠而長時間不執行。程序醒來時，某個 lease 可能早已過期。
 
-## 推薦資料
+## 來源整理：DDIA 的時鐘與 Linux clock API
 
-### DDIA 第二版，第 9 章 The Trouble with Distributed Systems
+DDIA 第二版第 9 章指出，日曆時鐘會受時鐘同步和人工調整影響；主機之間的時鐘偏差與網路延遲，使時間戳無法單獨證明先後順序。單調時鐘適合比較同一主機上的經過時間，但不同主機各自的單調時鐘沒有可直接比較的共同起點。程序暫停則會讓原本看似安全的時間判斷失效：lease 可能已過期，但暫停中的舊持有者醒來後仍繼續執行。
 
-- **連結**：[繁中線上章節](https://ddia.vonng.com/tw/ch9/)、[O’Reilly 英文章節](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/ch09.html)
-- **建議閱讀**：「不可靠的時鐘」中的日曆時鐘、單調時鐘、clock synchronization and accuracy，以及「程序暫停」。
-- **免費／語言**：繁中譯文免費線上閱讀；英文原書完整內容需購買／訂閱，預覽免費。
-- **預估時間**：30–40 分鐘。
-- **讀完應懂**：能區分測量 duration 和記錄 point in time，並說明為何跨主機時間戳不保證事件排序。
-- **第一版章節對照**：你提供的第 8 章 The Trouble with Distributed Systems 是[這一頁](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/ch08.html)；目前翻譯站提供的第二版對應第 9 章。
+Linux `clock_gettime(2)` 將這些用途反映成不同 clock：
 
-### Linux man-pages：clock_gettime(2)
+- `CLOCK_REALTIME` 是可設定的日曆時間，適合記錄日期時間；校時可能使它跳動。
+- `CLOCK_MONOTONIC` 是單調的經過時間基準，不受 `CLOCK_REALTIME` 的人工跳時影響，但不計入系統 suspend 的時間。
+- `CLOCK_BOOTTIME` 具有 monotonic 特性，且會把系統 suspend 的時間算入經過時間。
 
-- **連結**：[clock_gettime(2)](https://man7.org/linux/man-pages/man2/clock_gettime.2.html)
-- **建議閱讀**：CLOCK_REALTIME、CLOCK_MONOTONIC、CLOCK_BOOTTIME 的說明。
-- **免費／語言**：免費；英文；繁中版未確認。
-- **預估時間**：10–15 分鐘。
-- **讀完應懂**：能將 DDIA 的時鐘概念對應到 Linux API，並看出 monotonic 只保證單機時間不倒退。
+實務上，量測逾時通常選 monotonic 類時鐘；寫 log 時使用 wall-clock，並保留主機或時鐘來源資訊。若要判斷跨主機事件因果，需使用協定、序號或因果資訊，不能只排序 timestamp。
+
+### 來源
+
+- DDIA：[第二版第 9 章 The Trouble with Distributed Systems（繁中）](https://ddia.vonng.com/tw/ch9/)、[第二版英文版](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/ch09.html)、[第一版第 8 章](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/ch08.html)
+- Linux man-pages：[clock_gettime(2)](https://man7.org/linux/man-pages/man2/clock_gettime.2.html)
 
 ## 延伸閱讀
 

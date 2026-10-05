@@ -20,23 +20,44 @@ date: 2026-10-05
 
 這不是說 git-http-backend 本身就是完整的網站伺服器。Web server 或 reverse proxy 還要處理 TLS、路由、驗證和存取權限。
 
-## 推薦資料
+## Pro Git 第 4 章原文整理
 
-### Pro Git：第 4 章，4.1 與 4.6
+以下依 Pro Git 第二版英文第 4.1 與 4.6 節翻譯整理；重點放在協定差異和 Smart HTTP 的伺服器責任。它是摘要式筆記，不是逐段直譯。Pro Git 由 Scott Chacon 與 Ben Straub 撰寫，採 CC BY-NC-SA 3.0。
 
-- **連結**：[繁中書目與章節索引](https://git-scm.com/book/zh-tw/v2)、[4.1 Protocols](https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols)、[4.6 Smart HTTP](https://git-scm.com/book/en/v2/Git-on-the-Server-Smart-HTTP)
-- **建議閱讀**：4.1 的 HTTP 與 Smart HTTP 介紹；4.6 Smart HTTP 的 CGI 設定概念和驗證範例。不要把舊 Apache 範例直接當成現代部署設定。
-- **免費／語言**：免費線上，CC BY-NC-SA 3.0；繁中網站有章節導覽，但相關正文主要為英文。
-- **預估時間**：20–30 分鐘。
-- **讀完應懂**：能分辨 Smart HTTP 與 Dumb HTTP，以及 Smart HTTP 如何使用標準 HTTP/S 埠和 receive-pack 支援 push。
+### 4.1 傳輸協定的取捨
 
-### Git 官方協定與伺服器手冊
+遠端 repository 通常是 bare repository，只有 Git 資料，沒有 checkout 出來的工作目錄。Pro Git 將 Git 傳輸方式分成四類：
 
-- **連結**：[HTTP protocol 的 Smart Service git-receive-pack](https://git-scm.com/docs/http-protocol#_smart_service_git_receive_pack)、[git-receive-pack](https://git-scm.com/docs/git-receive-pack)、[git-http-backend](https://git-scm.com/docs/git-http-backend)
-- **建議閱讀**：HTTP protocol 的 ref discovery 與 git-receive-pack 範例；receive-pack 的 DESCRIPTION、PRE-RECEIVE HOOK、QUARANTINE ENVIRONMENT；http-backend 的 DESCRIPTION、SERVICES。
-- **免費／語言**：免費，Git 官方英文手冊；繁中譯本未確認。
-- **預估時間**：25–35 分鐘。
-- **讀完應懂**：能認出 GET ref discovery、POST receive-pack、packfile、quarantine 和 push status 的位置。
+| 協定 | 主要特性 | 對自架平台的意義 |
+| --- | --- | --- |
+| Local | 透過本機路徑或共享檔案系統存取。簡單，沿用檔案權限；遠端使用時得先掛載檔案系統，也讓使用者直接接觸 repository 內部檔案。 | 適合本機或可信任的共享儲存，不是一般網際網路服務的入口。 |
+| SSH | 傳輸加密並驗證連線，通常透過使用者帳號或 SSH key 執行 Git。常見、有效率，但不能提供匿名存取。 | 適合管理者熟悉 SSH 的自架環境；授權通常跟主機帳號或 key 管理結合。 |
+| Git protocol（`git://`） | 由 Git daemon 提供專用傳輸，設計簡單且效率高；本身沒有認證或加密。 | 可供公開唯讀 clone；不能把未受保護的 `git://` 當成安全 push 入口。 |
+| HTTP | 分成 Smart HTTP 與 Dumb HTTP。Smart HTTP 能協商 Git 傳輸並支援寫入；Dumb HTTP 把 bare repository 當靜態檔案提供，設定簡單但通常只適合唯讀。 | Smart HTTP 可沿用標準 HTTP/HTTPS 入口、同一 URL 和既有 Web 認證；適合接在 Web server 或 reverse proxy 後面。 |
+
+Smart HTTP 把 Git 協定資料放在標準 HTTP(S) 請求中傳送。它可以同時提供公開讀取和需要驗證的寫入，也容易穿過多數只開放 Web 流量的網路。SSH 的憑證管理與主機權限模型較直接；Smart HTTP 則可接現有的 Web 認證。兩者的選擇取決於帳號、授權、網路與維運方式。
+
+Dumb HTTP 沒有 Git client/server 間的智慧協商；伺服器把資料檔案直接提供給 client，並需更新供讀取使用的伺服器資訊。它和可讀寫的 Smart HTTP 是不同服務模式，不能把「repository 放在 Web root 下」等同於建立了安全的 push 服務。
+
+### 4.6 Smart HTTP 的伺服器分工
+
+Pro Git 的範例用 CGI 執行 Git 隨附的 `git-http-backend`。backend 讀取 HTTP 路徑和 headers，判斷 Git client 要 fetch 還是 push，再負責 Git 協定的資料交換。它不負責替使用者驗證身分；TLS、登入驗證、路徑路由和權限仍由呼叫它的 Web server 或前置代理處理。
+
+因此一次 Smart HTTP push 可以分成兩層來看：
+
+1. HTTP 層確認請求能否到達正確 repository，並依服務政策驗證使用者和寫入權限。
+2. Git backend 執行 Git 傳輸協定，讓 `git-receive-pack` 收到更新請求和 objects，最後回傳每個 ref 的結果。
+
+書中的 Apache CGI 設定是用來示範分工的簡化範例；它不涵蓋現代部署所需的 TLS、token/SSO、反向代理、請求限制或租戶隔離。實際設定應依目前的 Git、Web server 與身分驗證方式確認。
+
+### 官方 Git 協定補充
+
+Smart HTTP 的讀取協商會先取得 refs 和 server capabilities，再以 POST 傳送 receive-pack 服務所需資料。對 push 來說，client 會提供想更新的 refs、舊值與新值，以及必要的 packfile；伺服器端的 receive-pack 負責驗證並回覆各 ref 的成功或失敗。packfile 是傳輸封裝，不是另一種 commit 或 ref。
+
+### 來源
+
+- Pro Git 第二版：[4.1 The Protocols](https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols)、[4.6 Smart HTTP](https://git-scm.com/book/en/v2/Git-on-the-Server-Smart-HTTP)
+- Git 官方手冊：[HTTP protocol](https://git-scm.com/docs/http-protocol#_smart_service_git_receive_pack)、[git-receive-pack](https://git-scm.com/docs/git-receive-pack)、[git-http-backend](https://git-scm.com/docs/git-http-backend)
 
 ## 和平台設計的關係
 

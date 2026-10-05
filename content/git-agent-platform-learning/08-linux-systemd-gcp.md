@@ -11,63 +11,41 @@ date: 2026-10-05
 
 # Linux、systemd、cgroup v2 與 GCP
 
-這是第四優先的後續材料。先學到能讀懂 unit file、追程序與設定 VM 即可，不必把整本 Linux 命令列書讀完。
+本章把前面討論的 Git backend 放回實際執行環境：shell 負責啟動和串接命令，systemd 管理服務生命週期，cgroup 限制程序資源，Compute Engine 提供 VM、網路和磁碟。重點是讀懂各層責任，不是照範例直接部署。
 
-## Linux 基本操作
+## Linux shell 和程序
 
-### The Linux Command Line — William Shotts
+檔案路徑分成絕對路徑與相對路徑；常用操作包括列出目錄、建立或移動檔案、檢查擁有者和讀寫執行權限，以及查看目前程序。服務故障排查常從「執行了哪個命令、使用哪個帳號、檔案權限如何、程序是否還在」開始。
 
-- **連結**：[作者網站、目錄與第七版免費 PDF](https://linuxcommand.org/tlcl.php)
-- **建議閱讀**：Navigation、Exploring the System、Manipulating Files and Directories、Permissions、Processes。
-- **免費／語言**：第七版 Internet Edition 英文 PDF 免費下載，CC BY-NC-ND；有繁中紙本《Linux 指令大全》，但查到的台灣版為 2022 年譯自第二版，較目前免費英文版落後。可參考[國家圖書館 ISBN 記錄](https://isbn.ncl.edu.tw/NEW_ISBNNet/main_DisplayRecord_Popup.php?Pact=view&Pkey=1110426%2A0077)。
-- **預估時間**：精選章節約 1.5–2 小時。
-- **讀完應懂**：能在 Linux shell 找檔案、讀權限、檢視程序並操作基本檔案。
+Shell 透過標準輸入、標準輸出和標準錯誤串接程式。pipe 把前一個程序的輸出接到下一個程序的輸入；redirect 把輸入或輸出接到檔案；exit status 則讓呼叫端判斷命令成功或失敗。這些規則也影響 hook 或啟動腳本如何傳遞錯誤。
 
-### MIT Missing Semester 2026：Introduction to the Shell
+**來源：** William Shotts 的 [The Linux Command Line](https://linuxcommand.org/tlcl.php)；MIT [Missing Semester：Shell](https://missing.csail.mit.edu/2026/course-shell/)。
 
-- **連結**：[課程講義與影片](https://missing.csail.mit.edu/2026/course-shell/)
-- **建議閱讀**：shell basics、pipes、redirects；可先看講義，不必做完所有練習。
-- **免費／語言**：免費；英文；繁中版未確認。
-- **預估時間**：30–45 分鐘。
-- **讀完應懂**：能理解 shell 用 stdin、stdout、pipe 和 exit status 串接程式。
+## systemd：服務啟動和停止
 
-## systemd 與 cgroup v2
+systemd service unit 描述如何啟動、停止和追蹤一個服務。`ExecStart` 指定啟動命令；`ExecStop` 可指定停止流程；`KillSignal` 決定停止時先送出的訊號；`TimeoutStopSec` 設定等待程序結束的時間。`KillMode=control-group` 會把 unit 的 control group 作為停止範圍，因此由服務啟動的子程序也納入管理。部署時要讓程式能接收終止訊號並完成清理，逾時後再依設定強制結束。
 
-### systemd.service 與 systemd.kill
+**來源：** systemd 官方 [`systemd.service`](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html) 和 [`systemd.kill`](https://www.freedesktop.org/software/systemd/man/latest/systemd.kill.html) 手冊。
 
-- **連結**：[systemd.service](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html)、[systemd.kill](https://www.freedesktop.org/software/systemd/man/latest/systemd.kill.html)
-- **建議閱讀**：systemd.service 的 Service、ExecStart、ExecStop；systemd.kill 的 KillMode、KillSignal、TimeoutStopSec。
-- **免費／語言**：systemd 官方文件免費；英文；繁中官方譯本未確認。
-- **預估時間**：25–35 分鐘。
-- **讀完應懂**：能讀基本 unit file，並知道 KillMode=control-group 會在停止 unit 時處理該 control group 中的程序。預設先送 SIGTERM，逾時後再依設定送 SIGKILL。
+## cgroup v2：追蹤和限制資源
 
-### Linux kernel Control Group v2
+cgroup v2 以統一階層組織程序，控制器可對一組程序做資源計量或限制。CPU controller 管理 CPU 使用分配，memory controller 管理記憶體用量和限制。systemd 通常會替 unit 建立 cgroup，因此服務的程序樹和資源管理可以跟 unit 一起操作。cgroup 負責限制與統計資源，不負責應用程式資料的持久化。
 
-- **連結**：[官方文件](https://docs.kernel.org/admin-guide/cgroup-v2.html)
-- **建議閱讀**：Introduction、Basic Operations、Controllers 的開頭和 CPU／memory 概念。
-- **免費／語言**：免費；英文；繁中官方版未確認。
-- **預估時間**：20–30 分鐘。
-- **讀完應懂**：能把 cgroup v2 看成統一階層式程序集合，可做資源管理與限制。
+**來源：** Linux kernel 官方 [Control Group v2 文件](https://docs.kernel.org/admin-guide/cgroup-v2.html)。
 
-## GCP Compute Engine
+## GCP Compute Engine：VM、SSH 和網路入口
 
-### 建立 Linux VM、SSH 與防火牆
+建立 VM 時要選 region/zone、machine type 和 boot disk；SSH-in-browser 或 `gcloud` SSH 用來管理主機。VPC firewall rule 會依 target、source、protocol 和 port 決定哪些流量可進入 VM。應分開看管理連線與應用程式對外服務的 ingress 規則，避免為了方便而讓服務埠對所有來源開放。
 
-- **連結**：[建立 Linux VM](https://docs.cloud.google.com/compute/docs/create-linux-vm-instance?hl=zh-tw)、[SSH 連線](https://docs.cloud.google.com/compute/docs/instances/ssh?hl=zh-tw)、[VPC firewall rules](https://docs.cloud.google.com/firewall/docs/firewalls?hl=zh-tw)
-- **建議閱讀**：建立 VM 的 region/zone、machine type、boot disk；SSH-in-browser 或 gcloud SSH；firewall rule 的 target、source、protocol/port。
-- **免費／語言**：Google 官方文件免費，有繁體中文頁面。
-- **預估時間**：35–50 分鐘。
-- **讀完應懂**：能建立 Linux VM、用 SSH 登入，並把管理連線和對外服務 ingress rule 分開理解。
+**來源：** Google Cloud 官方繁中頁面：[建立 Linux VM](https://docs.cloud.google.com/compute/docs/create-linux-vm-instance?hl=zh-tw)、[SSH 連線](https://docs.cloud.google.com/compute/docs/instances/ssh?hl=zh-tw)、[VPC firewall rules](https://docs.cloud.google.com/firewall/docs/firewalls?hl=zh-tw)。
 
-### Google Cloud Free Tier
+## Free Tier 與預算
 
-- **連結**：[Free Cloud features and trial offer](https://docs.cloud.google.com/free/docs/free-cloud-features?hl=zh-tw)
-- **建議閱讀**：Compute Engine Free Tier 與 Free Trial 兩段。
-- **免費／語言**：官方繁中說明免費；額度會變動，建立資源前重查。
-- **預估時間**：10–15 分鐘。
-- **讀完應懂**：能分清按月 Free Tier 與新客戶限期抵用額，並找出超額會計費的項目。
+Free Tier 是按月計算的特定產品額度；Free Trial 是新客戶在限期內可用的抵用額，兩者不是同一種免費承諾。額度可能只適用指定 VM 規格、區域、磁碟和流量；超出範圍或用量可能收費。
 
-截至 2026-10-05，官方列出每月合計 1 台非 preemptible e2-micro 的月時數，限 us-west1、us-central1、us-east1；另有 30 GB-month standard persistent disk，以及每月 1 GB 從北美傳出的資料（中國與澳洲除外）。這不是台灣 region 的免費 VM。新客戶 US$300／90 天 Free Trial 是另一種抵用額，不代表之後所有資源免費；未升級 billing account 時，試用結束的資源可能被停止或刪除。
+截至 2026-10-05，官方列出每月合計 1 台非 preemptible e2-micro 的月時數，限 us-west1、us-central1、us-east1；另有 30 GB-month standard persistent disk，以及每月 1 GB 從北美傳出的資料（中國與澳洲除外）。這不是台灣 region 的免費 VM。新客戶 US$300／90 天 Free Trial 是另一種抵用額，不代表之後所有資源免費；未升級 billing account 時，試用結束的專案和資源會停止運作。
+
+建立資源前請重新確認 [Google Cloud Free Tier 與試用額度](https://docs.cloud.google.com/free/docs/free-cloud-features?hl=zh-tw)，並檢查磁碟、網路流量、區域和 VM 規格是否符合條件。
 
 ## 返回路線
 

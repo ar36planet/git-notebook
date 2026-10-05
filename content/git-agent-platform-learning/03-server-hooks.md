@@ -38,23 +38,34 @@ preparing 和 prepared 階段的非零退出會取消 transaction；committed／
 - [Git 2.54 release notes](https://github.com/git/git/blob/master/Documentation/RelNotes/2.54.0.adoc)記載新增 preparing 狀態，發行日期為 2026-04-20。
 - [最新版 githooks 手冊](https://git-scm.com/docs/githooks#_reference_transaction)描述四個階段與 stdin 格式。
 
-## 推薦資料
+## Pro Git 第 8.3 節原文整理
 
-### Pro Git：8.3 Git Hooks
+以下依 Pro Git 第二版英文第 8.3 節翻譯整理，聚焦本章會用到的伺服器端 hooks；不是逐段直譯。Pro Git 由 Scott Chacon 與 Ben Straub 撰寫，採 CC BY-NC-SA 3.0。
 
-- **連結**：[章節](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks)
-- **建議閱讀**：Server-Side Hooks，尤其 pre-receive、update、post-receive 的用途差異。
-- **免費／語言**：免費線上；繁中網站有導覽，但此節正文主要是英文。
-- **預估時間**：20–25 分鐘。
-- **讀完應懂**：能分辨 push 前的政策檢查、逐 ref 更新檢查與更新後通知。
+Git hooks 是 Git 在特定操作前後呼叫的可執行程式，分成 client-side 和 server-side。client-side hook 由本機操作觸發，使用者可以略過或自行改動；伺服器要強制執行的規則，必須放在自己控制的伺服器端。
 
-### Git 官方 githooks 與 receive-pack
+Hooks 放在 repository 的 Git directory 下 `hooks/`。`git init` 會放入範例檔，檔名以 `.sample` 結尾；要啟用範例需移除後綴並確保可執行。hook 可用任何伺服器可執行的程式語言撰寫，輸入資料和退出碼則由各 hook 的介面決定。
 
-- **連結**：[githooks](https://git-scm.com/docs/githooks)、[git-receive-pack 的 PRE-RECEIVE HOOK 和 QUARANTINE ENVIRONMENT](https://git-scm.com/docs/git-receive-pack#_quarantine_environment)
-- **建議閱讀**：pre-receive、reference-transaction、receive-pack 的 pre-receive 與 quarantine 區段。
-- **免費／語言**：免費；英文；繁中版未確認。
-- **預估時間**：25–35 分鐘。
-- **讀完應懂**：能依 hook 的輸入和執行時機判斷它是否適合作為拒絕點或稽核通知點。
+Pro Git 將 push 相關伺服器 hooks 分成三種用途：
+
+| Hook | 呼叫次數與輸入 | 拒絕範圍／常見用途 |
+| --- | --- | --- |
+| `pre-receive` | 一次 push 呼叫一次；stdin 列出此次要求更新的 refs。 | 非零退出會拒絕這次 push 的所有 ref 更新。適合檢查整批更新共同的政策，例如不可 force-push、使用者是否能修改指定 refs。 |
+| `update` | 每個待更新的 ref 呼叫一次；參數包含 ref 名稱、舊 object ID、新 object ID。 | 非零退出只拒絕該 ref，其他 ref 仍可能成功。適合逐分支套用規則。 |
+| `post-receive` | 至少一個 ref 更新成功後呼叫；stdin 列出成功更新的 refs。 | 已無法拒絕 push。適合通知 CI、更新其他服務或送出事件；若處理很久，client 連線也會等它完成。 |
+
+要選 hook，先問「這個檢查要否決整批 push、單一 ref，還是只在成功後通知？」拒絕點和通知點不能互換：`post-receive` 不能用來回滾已成功的 Git 更新。
+
+## Git 官方手冊補充：reference transaction 與 quarantine
+
+Pro Git 第 8.3 節說明了常見 hooks 的使用方式；目前 Git 官方手冊另外定義 `reference-transaction`，讓 hook 參與 ref transaction 的不同階段。它可能由 push 以外的 ref 更新操作觸發。`prepared` 階段可在 ref transaction 寫入前拒絕；`committed` 是 ref 已更新後的通知，失敗不能讓已提交的 refs 倒退。Git 2.54 加入 `preparing` 階段；Git 2.28 起已有 `reference-transaction`，但當時沒有 `preparing`。
+
+receive-pack 在執行 `pre-receive` 時會把這次 push 傳入的新物件放在 quarantine 區。hook 可以檢查 incoming commits；若整批 push 被拒絕，Git 會清除 quarantine 中的物件。這保護了 object database 免於留下未被 refs 接受的資料，但它不會讓 Git refs 和外部資料庫自動形成同一筆原子交易。
+
+### 來源
+
+- Pro Git 第二版：[8.3 Git Hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks)
+- Git 官方手冊：[githooks](https://git-scm.com/docs/githooks)、[git-receive-pack quarantine environment](https://git-scm.com/docs/git-receive-pack#_quarantine_environment)、[Git 2.54 release notes](https://github.com/git/git/blob/master/Documentation/RelNotes/2.54.0.adoc)
 
 ## 對 audit log 的設計提醒
 

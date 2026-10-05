@@ -20,23 +20,18 @@ Lease 是有期限的 lock。期限讓其他 client 能在舊持有者消失後�
 
 例如：client A 取得 token 33 後暫停；lease 到期，client B 取得 34 並寫入；A 恢復後帶 33 寫入。儲存端看到 33 小於 34，就拒絕 A。安全性來自資源端檢查 token，不是 client 自己判斷租約是否到期。
 
-## 推薦資料
+## 來源整理：租約失效與 fencing
 
-### DDIA 第二版，第 9 章
+DDIA 第二版第 9 章和 Martin Kleppmann 的文章都強調：分散式鎖服務只能告訴 client「你目前拿到鎖」，不能保證 client 後續每一刻都還在有效期內。client 可能停頓，鎖服務也可能因網路延遲無法及時回應；到期後第二個 client 可以取得鎖，但第一個 client 並不會因此停止執行。
 
-- **連結**：[繁中線上章節](https://ddia.vonng.com/tw/ch9/)、[O’Reilly 英文章節](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/ch09.html)
-- **建議閱讀**：「分散式鎖和租約」及「用柵欄機制隔離殭屍與延遲請求」。
-- **免費／語言**：繁中譯文免費線上閱讀；英文原書完整內容需購買／訂閱，預覽免費。
-- **預估時間**：20–30 分鐘。
-- **讀完應懂**：能以失效時間線解釋 lease 競態，並說明 token 必須由儲存端驗證。
+柵欄 token 把「新舊持有者」交由真正保存資料的資源端判斷：鎖服務每次發鎖時發出遞增 token；資源端記住已接受的最大 token，拒絕任何較小值。即使舊程序醒來、誤以為 lease 還有效，它的舊 token 也過不了資源端檢查。token 必須嚴格遞增且不因服務重啟而重複，寫入端也必須在每次修改時驗證；只在 client 裡檢查 lease 時間沒有同等保護力。
 
-### Martin Kleppmann：How to do distributed locking
+這個機制能保護同一資源上的寫入順序，但不會自動讓 Git ref 更新和 SQL 稽核紀錄成為同一筆交易。跨儲存系統仍需要明確的重試、冪等和修復流程。
 
-- **連結**：[文章](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html)
-- **建議閱讀**：“The problem with locks” 和 “Making the lock safe with fencing”。
-- **免費／語言**：免費；英文；繁中版未確認。
-- **預估時間**：20–25 分鐘。
-- **讀完應懂**：能說明 process pause、網路延遲與時鐘跳變如何讓 lease 失效，以及 fencing 如何由資源端防護。
+### 來源
+
+- DDIA：[第二版第 9 章（繁中）](https://ddia.vonng.com/tw/ch9/)、[第二版英文版](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/ch09.html)
+- Martin Kleppmann：[How to do distributed locking](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html)
 
 ## 對自架 Git 平台的設計問題
 

@@ -1,6 +1,6 @@
 ---
-title: 自架 Git 交付平台：學習路線
-description: 以能判斷設計取捨為目標，整理 Git 內部、故障與並行、資料耐久性及 Linux 維運資料。
+title: 自架 Git 交付平台：繁中筆記
+description: 整理 Git 內部、push 與 hooks、故障復原、並行控制、資料耐久性及 Linux 維運的繁中筆記。
 tags:
   - git
   - distributed-systems
@@ -8,45 +8,35 @@ tags:
 date: 2026-10-05
 ---
 
-# 自架 Git 交付平台：學習路線
+# 自架 Git 交付平台：繁中筆記
 
-這組筆記是給熟悉 C#、ASP.NET 和日常 Git 操作的 .NET 後端工程師。目標是看懂「AI agent 用 git push 交付程式碼，伺服器記錄並把關每次寫入」所涉及的設計，不要求讀完整本書，也不要求能獨立實作 Git、分散式協定或 Linux 維運。
+這組筆記是給熟悉 C#、ASP.NET 和日常 Git 操作的 .NET 後端工程師。情境是 AI agent 透過 `git push` 交付程式碼，由伺服器接收、檢查、記錄並更新 refs。目標是理解設計取捨，不要求讀完整本書或自行實作 Git 協定。
 
-## 章節
+頁面已把主要概念整理在本文中，可以直接照章節閱讀。外部連結用來標示來源、查核版本或延伸案例，不是必須先去完成的閱讀作業。Pro Git 的相關章節依英文第二版整理成繁體中文摘要；不是官方繁中版，也不是逐段全譯。
 
-1. [Git 物件模型：commit、tree、blob、ref](01-git-object-model.md)
-2. [git push、Smart HTTP 與 receive-pack](02-smart-http-push.md)
-3. [伺服器端 hooks 與 reference transaction](03-server-hooks.md)
-4. [寫到一半當機、WAL 與 journal](04-crash-recovery-wal.md)
-5. [不可靠的時鐘與程序暫停](05-clocks-and-pauses.md)
-6. [分散式鎖、lease 與 fencing token](06-distributed-locks-fencing.md)
-7. [fsync、目錄耐久性與 Cloud Persistent Disk](07-fsync-and-cloud-durability.md)
-8. [Linux、systemd、cgroup v2 與 GCP](08-linux-systemd-gcp.md)
+## 筆記導覽
 
-## 查核與版本註記
+| 順序 | 筆記 | 讀完後能回答的問題 |
+| --- | --- | --- |
+| 1 | [Git 物件模型：commit、tree、blob、ref](01-git-object-model.md) | Git 如何表示快照和歷史？branch、HEAD、tag 分別指向什麼？ |
+| 2 | [git push、Smart HTTP 與 receive-pack](02-smart-http-push.md) | push 經過哪些 HTTP 請求？Web server 和 Git backend 各負責什麼？ |
+| 3 | [伺服器端 hooks 與 reference transaction](03-server-hooks.md) | 哪個 hook 能拒絕整批 push、拒絕單一 ref，或在提交後通知？ |
+| 4 | [寫到一半當機、WAL 與 journal](04-crash-recovery-wal.md) | 交易中斷時如何回復？commit record 和 checkpoint 各代表什麼？ |
+| 5 | [不可靠的時鐘與程序暫停](05-clocks-and-pauses.md) | wall-clock、monotonic clock 和跨主機時間戳能回答什麼？ |
+| 6 | [分散式鎖、lease 與 fencing token](06-distributed-locks-fencing.md) | 為什麼舊持有者可能在 lease 到期後繼續寫入？資源端如何拒絕它？ |
+| 7 | [fsync、目錄耐久性與 Cloud Persistent Disk](07-fsync-and-cloud-durability.md) | write、fsync、目錄同步、磁碟耐久性和備份有何差異？ |
+| 8 | [Linux、systemd、cgroup v2 與 GCP](08-linux-systemd-gcp.md) | 如何把服務程序、資源限制、VM、SSH 和防火牆串起來？ |
 
-- 查核日期：2026-10-05。價格、雲端免費額度與 Git 文件會改動，部署前請再看官方頁面。
-- Pro Git 第二版線上免費，採 CC BY-NC-SA 3.0。官方網站將繁體中文列為部分翻譯；本系列使用到的 Internals 10.1–10.3、Smart HTTP 4.6 與 Hooks 8.3 頁面，導覽雖有繁中，正文主要仍是英文。
-- 你提供的 [Vonng/DDIA 繁中翻譯庫](https://github.com/Vonng/ddia/blob/main/content/tw/_index.md)目前提供第二版譯文。第二版 Transactions 在第 8 章，The Trouble with Distributed Systems 在第 9 章；第一版相同主題分別是第 7、8 章。譯文可免費線上閱讀，但請查看 repo 法律聲明；免費閱讀不等於可任意再散布。
-- 若要核對你原先提到的第一版章節編號，O’Reilly 的正確頁面是[第 7 章 Transactions](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/ch07.html)和[第 8 章 The Trouble with Distributed Systems](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/ch08.html)。英文版完整內容需購買／訂閱，章節預覽免費。
-- reference-transaction hook 在 Git 2.28 已存在；當時只有 prepared、committed、aborted。preparing 是 Git 2.54 新增的階段。細節見 [伺服器端 hooks](03-server-hooks.md)。
-- The Linux Command Line 作者網站提供第七版 Internet Edition 免費英文 PDF；查到的繁體中文紙本《Linux 指令大全》是 2022 年譯自第二版，內容較舊。細節見 [Linux 與維運](08-linux-systemd-gcp.md)。
-- 「未確認」表示沒有找到足以確認該語言版本或資訊的來源。閱讀時間為專注閱讀估計，不含做筆記。
+建議先讀第 1–3 章建立 Git 收件流程，再讀第 4–7 章理解交易、故障和並行問題；第 8 章補足執行環境與維運背景。每章末的問題可用來自我檢查。
 
-## 一週閱讀計畫：第一、二優先，每天約一小時
+## 來源和版本
 
-| 日      | 閱讀安排                                                                                                                | 當天目標                                                 |
-| ------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| 第 1 天 | [Git 物件模型](01-git-object-model.md)：Pro Git 10.2（約 25 分）＋ Mary Rose Cook 文章前半（約 30 分）                  | 畫出 blob、tree、commit 的連結。                         |
-| 第 2 天 | [Git 物件模型](01-git-object-model.md)：Pro Git 10.1、10.3（約 35 分）＋ SHA-256 註記（約 15 分）                       | 解釋 branch ref、HEAD 與 commit graph 的不同。           |
-| 第 3 天 | [Push 與 Smart HTTP](02-smart-http-push.md)：Pro Git 4.1、4.6（約 30 分）＋ HTTP protocol receive-pack 範例（約 25 分） | 畫出 ref discovery、POST receive-pack、packfile 的順序。 |
-| 第 4 天 | [伺服器端 hooks](03-server-hooks.md)：Pro Git 8.3（約 20 分）＋ githooks 與 receive-pack（約 40 分）                    | 說明 pre-receive 和 reference-transaction 各能把關什麼。 |
-| 第 5 天 | [Crash recovery 與 WAL](04-crash-recovery-wal.md)：DDIA 第二版第 8 章選讀（約 30 分）＋ SQLite WAL（約 25 分）          | 說明 commit record、復原與 checkpoint。                  |
-| 第 6 天 | [時鐘與程序暫停](05-clocks-and-pauses.md)：DDIA 第 9 章選讀（約 45 分）＋ clock_gettime(2)（約 10 分）                  | 分辨 wall-clock、monotonic clock 與跨主機時間戳。        |
-| 第 7 天 | [分散式鎖與 fencing](06-distributed-locks-fencing.md)：DDIA 第 9 章選讀（約 30 分）＋ Kleppmann 部落格（約 25 分）      | 解釋為什麼資源端要檢查遞增 token。                       |
-
-第三、四優先可以等 Git 的 push 與 hook 設計穩定後再讀。每章只列本專案需要的段落；若自我檢查題答不順，重讀對應段落即可。
+- 查核日期：2026-10-05。雲端價格、免費額度、服務規格與 Git 文件會變動；部署或估算成本時，以官方當下內容為準。
+- Pro Git 第二版由 Scott Chacon 與 Ben Straub 撰寫，採 [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/)。本站 Pro Git 章節為繁中整理式摘要，保留各章英文原文連結並標示來源；分享改作時請遵循相同授權條件。
+- DDIA 使用第二版章節編號：Transactions 是第 8 章，The Trouble with Distributed Systems 是第 9 章。第一版相同主題分別在第 7、8 章；連結列於相關筆記。
+- reference-transaction 在 Git 2.28 已有 `prepared`、`committed`、`aborted` 階段；`preparing` 是 Git 2.54 加入。細節見[伺服器端 hooks](03-server-hooks.md)。
+- GCP Free Tier 和 Persistent Disk 數字具有時效性；相關筆記已標出查核日期。
 
 ## Quartz 使用方式
 
-這些頁面是一般 Markdown，已加上 Quartz 常用的 title、description、tags、date frontmatter，並使用標準 Markdown 相對連結，讓 GitHub 與 Quartz 都能正確導覽。之後可將整個資料夾複製到 Quartz 專案的 content 目錄；本資料夾獨立於工作區裡既有的 wiki 筆記。
+這些頁面是一般 Markdown，使用 Quartz 常見的 title、description、tags、date frontmatter 和標準相對連結，可直接放進 Quartz 的 `content` 目錄；在 GitHub 上也能閱讀和導覽。

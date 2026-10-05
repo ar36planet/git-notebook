@@ -19,31 +19,19 @@ Linux 的 fsync(file descriptor) 會要求檔案資料及相關 metadata 同步�
 
 即使使用 fsync，仍依賴檔案系統、device cache 與硬體正確回報完成。資料庫會用 journal/WAL 和復原機制，備份則處理更大範圍的資料遺失或誤刪。
 
-## 推薦資料
+## 來源整理：檔案系統的 crash consistency
 
-### Dan Luu：Files are hard
+Dan Luu 的案例和 LWN 對 I/O 路徑的說明，可以合併成一條檢查線：應用程式先把資料交給 library/runtime，再交給 kernel；kernel page cache、檔案系統和裝置快取還可能延遲或重排寫入。程序看到 `write` 成功，通常只代表資料被某一層接受，不能直接推論斷電後內容已安全保存。
 
-- **連結**：[文章](https://danluu.com/file-consistency/)
-- **建議閱讀**：Crash Consistency 的 undo log、fsync 與 parent-directory 範例；filesystem semantics 可略讀。
-- **免費／語言**：免費；英文；繁中版未確認。
-- **預估時間**：25–35 分鐘。
-- **讀完應懂**：能理解 syscall 順序、檔案系統與硬體快取如何改變 crash 後的結果。
+`fsync(file)` 要求檔案資料和必要 metadata 同步到儲存裝置。它仍受作業系統、檔案系統和硬體是否正確實作及回報的限制。新建檔案或 rename 後，檔案內容本身落盤，不代表 parent directory 中的檔名或目錄項也已落盤；需要保證目錄項耐久時，還要同步目錄。`rename` 在同一檔案系統中通常提供名稱切換的原子可見性，但原子可見性與斷電後耐久性是兩件事。
 
-### LWN：Ensuring data reaches disk
+crash consistency 的核心問題是「操作被切斷後可能留下哪些組合」。例如先寫暫存檔、同步檔案、rename 到正式路徑、再同步目錄，與直接覆寫正式檔案的故障結果不同。journal/WAL 能記錄復原依據，但它們也必須依正確順序同步；省略錯誤處理或把成功回傳當成永久落盤，仍可能留下資料遺失窗口。
 
-- **連結**：[文章](https://lwn.net/Articles/457667/)
-- **建議閱讀**：I/O buffering、fflush、fsync、裝置 write cache。
-- **免費／語言**：免費可讀；英文；繁中版未確認。
-- **預估時間**：20–25 分鐘。
-- **讀完應懂**：能畫出 app、library、kernel page cache、device cache 到 stable storage 的資料路徑。
+### 來源
 
-### Linux man-pages：fsync(2)
-
-- **連結**：[fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html)
-- **建議閱讀**：DESCRIPTION 中 fsync(file)、metadata 與 directory entry 的說明。
-- **免費／語言**：免費；英文；繁中版未確認。
-- **預估時間**：10 分鐘。
-- **讀完應懂**：能分辨 fsync(file) 與 fsync(directory) 的保證範圍。
+- Dan Luu：[Files are hard](https://danluu.com/file-consistency/)
+- LWN：[Ensuring data reaches disk](https://lwn.net/Articles/457667/)
+- Linux man-pages：[fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html)
 
 ## Google Cloud Persistent Disk 耐久性
 
@@ -61,12 +49,9 @@ Linux 的 fsync(file descriptor) 會要求檔案資料及相關 metadata 同步�
 
 官方把耐久性定義為在一組硬體故障、災難事件與工程流程假設下，典型磁碟每年的資料遺失機率；表格數字是 disk type 的 aggregate design estimate，**不是有財務賠償的 SLA**。Regional disk 在同一 region 的兩個 zones 間保有 replicas，可協助 zone 故障時維持可用性；它不取代 backup，也不涵蓋客戶誤刪。
 
-### GCP 文件建議閱讀
+### GCP 數據解讀
 
-- **建議閱讀**：Persistent Disk 的 Durability of Persistent Disk 區段，以及 zonal/regional disk 的差異。
-- **免費／語言**：官方文件免費；繁體中文頁可用 **?hl=zh-tw**。
-- **預估時間**：10–15 分鐘。
-- **讀完應懂**：能區分單碟耐久性設計值、服務可用性、SLA 與備份。
+官方文件提供不同 Persistent Disk 類型的設計耐久性估值，並區分單一 zone 磁碟與跨兩個 zones 複寫的 regional disk。這些值描述的是在官方假設下的資料遺失機率估計，不等於服務可用性保證或有賠償條款的 SLA。Regional disk 可降低單一 zone 故障造成的中斷風險，但仍需備份以處理誤刪、錯誤覆寫或更大範圍的事故。數值可能更新，建立資源前請以官方頁面為準。
 
 ## 延伸閱讀
 
