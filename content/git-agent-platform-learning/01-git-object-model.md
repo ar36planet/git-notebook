@@ -44,5 +44,5 @@ Git 預設使用 SHA-1，也支援 SHA-256 repository。官方 [git-init 文件]
 
 ## 延伸閱讀
 
-- [[02-smart-http-push|下一章：git push、Smart HTTP 與 receive-pack]]
-- [[03-server-hooks|伺服器端 hooks 與 reference transaction]]
+- [下一章：git push、Smart HTTP 與 receive-pack](02-smart-http-push.md)
+- [伺服器端 hooks 與 reference transaction](03-server-hooks.md)

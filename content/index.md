@@ -9,7 +9,7 @@ description: 自架 Git 交付平台的設計學習筆記。
 
 ## 開始閱讀
 
-- [[git-agent-platform-learning/index|閱讀路線與一週計畫]]
-- [[git-agent-platform-learning/01-git-object-model|Git 物件模型]]
-- [[git-agent-platform-learning/02-smart-http-push|git push 與 Smart HTTP]]
-- [[git-agent-platform-learning/03-server-hooks|伺服器端 hooks]]
+- [閱讀路線與一週計畫](git-agent-platform-learning/index.md)
+- [Git 物件模型](git-agent-platform-learning/01-git-object-model.md)
+- [git push 與 Smart HTTP](git-agent-platform-learning/02-smart-http-push.md)
+- [伺服器端 hooks](git-agent-platform-learning/03-server-hooks.md)

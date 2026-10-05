@@ -46,5 +46,5 @@ date: 2026-10-05
 
 ## 延伸閱讀
 
-- [[01-git-object-model|上一章：Git 物件模型]]
-- [[03-server-hooks|下一章：伺服器端 hooks 與 reference transaction]]
+- [上一章：Git 物件模型](01-git-object-model.md)
+- [下一章：伺服器端 hooks 與 reference transaction](03-server-hooks.md)

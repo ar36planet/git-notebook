@@ -52,5 +52,5 @@ Lease 是有期限的 lock。期限讓其他 client 能在舊持有者消失後�
 
 ## 延伸閱讀
 
-- [[05-clocks-and-pauses|上一章：時鐘與程序暫停]]
-- [[07-fsync-and-cloud-durability|下一章：fsync 與 Cloud Persistent Disk]]
+- [上一章：時鐘與程序暫停](05-clocks-and-pauses.md)
+- [下一章：fsync 與 Cloud Persistent Disk](07-fsync-and-cloud-durability.md)

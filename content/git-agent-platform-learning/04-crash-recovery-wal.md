@@ -45,6 +45,6 @@ date: 2026-10-05
 
 ## 延伸閱讀
 
-- [[03-server-hooks|上一章：伺服器端 hooks]]
-- [[05-clocks-and-pauses|下一章：不可靠的時鐘與程序暫停]]
-- [[07-fsync-and-cloud-durability|fsync 與儲存耐久性]]
+- [上一章：伺服器端 hooks](03-server-hooks.md)
+- [下一章：不可靠的時鐘與程序暫停](05-clocks-and-pauses.md)
+- [fsync 與儲存耐久性](07-fsync-and-cloud-durability.md)

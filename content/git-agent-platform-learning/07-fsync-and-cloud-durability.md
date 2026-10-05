@@ -49,15 +49,15 @@ Linux 的 fsync(file descriptor) 會要求檔案資料及相關 metadata 同步�
 
 官方 [Persistent Disk Durability 文件](https://docs.cloud.google.com/compute/docs/disks/persistent-disks#durability_of_persistent_disk)列出的設計耐久性如下。官方頁面可加 **?hl=zh-tw** 選繁體中文。
 
-| Disk type | 官方列出的設計耐久性 |
-|---|---:|
-| Zonal standard | 高於 99.99% |
-| Zonal balanced | 高於 99.999% |
-| Zonal SSD | 高於 99.999% |
-| Zonal extreme | 高於 99.9999% |
-| Regional standard | 高於 99.999% |
-| Regional balanced | 高於 99.9999% |
-| Regional SSD | 高於 99.9999% |
+| Disk type         | 官方列出的設計耐久性 |
+| ----------------- | -------------------: |
+| Zonal standard    |          高於 99.99% |
+| Zonal balanced    |         高於 99.999% |
+| Zonal SSD         |         高於 99.999% |
+| Zonal extreme     |        高於 99.9999% |
+| Regional standard |         高於 99.999% |
+| Regional balanced |        高於 99.9999% |
+| Regional SSD      |        高於 99.9999% |
 
 官方把耐久性定義為在一組硬體故障、災難事件與工程流程假設下，典型磁碟每年的資料遺失機率；表格數字是 disk type 的 aggregate design estimate，**不是有財務賠償的 SLA**。Regional disk 在同一 region 的兩個 zones 間保有 replicas，可協助 zone 故障時維持可用性；它不取代 backup，也不涵蓋客戶誤刪。
 
@@ -70,6 +70,6 @@ Linux 的 fsync(file descriptor) 會要求檔案資料及相關 metadata 同步�
 
 ## 延伸閱讀
 
-- [[04-crash-recovery-wal|WAL 與 crash recovery]]
-- [[06-distributed-locks-fencing|分散式鎖與 fencing token]]
-- [[08-linux-systemd-gcp|Linux、systemd 與 GCP 入門]]
+- [WAL 與 crash recovery](04-crash-recovery-wal.md)
+- [分散式鎖與 fencing token](06-distributed-locks-fencing.md)
+- [Linux、systemd 與 GCP 入門](08-linux-systemd-gcp.md)

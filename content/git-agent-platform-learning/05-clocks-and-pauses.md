@@ -39,5 +39,5 @@ date: 2026-10-05
 
 ## 延伸閱讀
 
-- [[04-crash-recovery-wal|上一章：Crash recovery 與 WAL]]
-- [[06-distributed-locks-fencing|下一章：分散式鎖、lease 與 fencing token]]
+- [上一章：Crash recovery 與 WAL](04-crash-recovery-wal.md)
+- [下一章：分散式鎖、lease 與 fencing token](06-distributed-locks-fencing.md)

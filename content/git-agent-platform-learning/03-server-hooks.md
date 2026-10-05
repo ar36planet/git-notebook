@@ -22,12 +22,12 @@ pre-receive 由 git-receive-pack 在更新 refs 前呼叫，每次 receive 操�
 
 這個 hook 在任何會更新 refs 的 Git 指令中都可能執行，因此不只與 push 有關。stdin 同樣提供每個 ref 的 old/new/ref-name。
 
-| 狀態 | 發生時機 | 可以怎麼理解 |
-|---|---|---|
-| preparing | Git 2.54 起；更新已排入 transaction，ref lock 尚未取得 | 早期通知，可在正式鎖定前拒絕 |
-| prepared | 更新已排入 transaction，refs 已鎖定 | 變更已準備好；非零退出可以取消 transaction |
-| committed | ref transaction 已提交，refs 已有新值 | 已提交結果通知；hook 失敗不能回滾 refs |
-| aborted | transaction 取消，沒有套用變更，鎖已釋放 | 取消結果通知 |
+| 狀態      | 發生時機                                               | 可以怎麼理解                               |
+| --------- | ------------------------------------------------------ | ------------------------------------------ |
+| preparing | Git 2.54 起；更新已排入 transaction，ref lock 尚未取得 | 早期通知，可在正式鎖定前拒絕               |
+| prepared  | 更新已排入 transaction，refs 已鎖定                    | 變更已準備好；非零退出可以取消 transaction |
+| committed | ref transaction 已提交，refs 已有新值                  | 已提交結果通知；hook 失敗不能回滾 refs     |
+| aborted   | transaction 取消，沒有套用變更，鎖已釋放               | 取消結果通知                               |
 
 preparing 和 prepared 階段的非零退出會取消 transaction；committed／aborted 階段的退出狀態不改變結果。
 
@@ -68,5 +68,5 @@ pre-receive 可以拒絕 Git refs 更新；reference-transaction 的 prepared �
 
 ## 延伸閱讀
 
-- [[02-smart-http-push|上一章：git push 與 Smart HTTP]]
-- [[04-crash-recovery-wal|下一章：寫到一半當機、WAL 與 journal]]
+- [上一章：git push 與 Smart HTTP](02-smart-http-push.md)
+- [下一章：寫到一半當機、WAL 與 journal](04-crash-recovery-wal.md)

@@ -71,6 +71,6 @@ date: 2026-10-05
 
 ## 返回路線
 
-- [[index|學習路線首頁]]
-- [[07-fsync-and-cloud-durability|上一章：fsync 與 Cloud Persistent Disk]]
-- [[01-git-object-model|第一優先：Git 物件模型]]
+- [學習路線首頁](index.md)
+- [上一章：fsync 與 Cloud Persistent Disk](07-fsync-and-cloud-durability.md)
+- [第一優先：Git 物件模型](01-git-object-model.md)
