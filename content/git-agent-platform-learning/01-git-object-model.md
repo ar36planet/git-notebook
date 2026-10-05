@@ -20,6 +20,45 @@ date: 2026-10-05
 
 可以把提交歷史想成一張圖：commit 透過 parent 形成歷史；commit 指向 tree；tree 再往下指向 blob 和子 tree。branch 名稱只標示圖上的某個 commit。
 
+## 先看圖：檔案、快照和分支怎麼連起來
+
+先記住四樣東西：**blob 是檔案內容、tree 是目錄清單、commit 是一次快照、branch 是指向某個 commit 的名稱**。圖中的箭頭表示左邊保存右邊的 ID；`HEAD` 則通常保存目前 branch ref 的名稱。
+
+```mermaid
+flowchart TB
+    HEAD["HEAD"] -->|"symbolic ref"| MAIN["refs/heads/main<br/>branch ref"]
+    MAIN -->|"目前指向"| C2["commit B<br/>tree ID、parent ID、作者與訊息"]
+    C2 -->|"tree"| ROOT["root tree<br/>檔名、模式、object ID"]
+    C2 -->|"parent"| C1["commit A<br/>前一筆 commit"]
+    ROOT -->|"README.md"| B1["blob<br/>README.md 的檔案內容"]
+    ROOT -->|"src/ 子目錄"| SRC["子 tree"]
+    SRC -->|"main.cs"| B2["blob<br/>main.cs 的檔案內容"]
+```
+
+所以 blob 本身不知道檔名；tree 才把檔名和 blob 接起來。commit 記住 tree 和前一筆 commit；`main` 這個 branch ref 只要改指向新的 commit，就代表分支前進了。
+
+### `git add` 和 `git commit` 各做什麼
+
+這張圖把命令流程拆開。index（暫存區）不是 commit，也不是一般 Git object；它記錄這次準備提交的路徑和物件 ID。
+
+```mermaid
+sequenceDiagram
+    participant You as 你
+    participant Git
+    participant Index as index 暫存區
+    participant Objects as object database
+    participant Main as refs/heads/main
+    You->>Git: git add README.md
+    Git->>Objects: 保存檔案內容為 blob
+    Git->>Index: 記錄 README.md → blob ID
+    You->>Git: git commit
+    Git->>Objects: 從 index 寫出 tree 快照
+    Git->>Objects: 建立 commit（tree、parent、提交資訊）
+    Git->>Main: 將 main 移到新 commit
+```
+
+最短記法：**add 把檔案內容和路徑放進 Git 的準備區；commit 把準備好的目錄狀態封成快照，接到歷史上，再移動目前分支。**
+
 ## Pro Git 第 10 章原文整理
 
 以下依 Pro Git 第二版英文第 10.1–10.3 節整理並翻譯成繁體中文，按本系列的自架平台主題重新編排；這是摘要式筆記，不是逐段直譯。Pro Git 由 Scott Chacon 與 Ben Straub 撰寫，採 CC BY-NC-SA 3.0 授權。
@@ -41,13 +80,6 @@ Git 的 object database 是 key-value 資料庫：寫入內容後，Git 會依�
 `index`（也叫 staging area）記錄目前準備提交的檔案狀態。`git add` 把檔案內容寫成 blob，並更新 index 中對應路徑的項目；Git 再依 index 寫出 tree。沒有變動的檔案可以繼續由新 tree 指向原本的 blob，因此新的快照不必複製整份檔案內容。
 
 `commit` 把一個完整快照連到歷史。它記錄頂層 tree、零個或多個 parent commit、author、committer、時間資訊與訊息。第一個 commit 沒有 parent；一般 commit 有一個 parent；合併 commit 可以有多個 parent。`git commit` 的概念流程是：從 index 產生 tree，再建立一個指向該 tree 和 parent 的 commit 物件。
-
-```text
-commit ──指向──> tree（根目錄快照）
-  │                 ├──> blob（檔案內容）
-  │                 └──> tree（子目錄）──> blob / tree …
-  └──parent──> 前一個 commit
-```
 
 這說明 Git 的歷史主要由快照和 parent 關係構成。diff 是從快照之間計算出來的呈現方式；commit 物件本身記錄的是快照、父提交和提交資訊。
 
