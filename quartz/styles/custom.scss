@@ -1,3 +1,8 @@
 @use "./variables.scss" as *;
 
 // put your custom CSS here!
+:root {
+  // Mermaid's color parser cannot read the theme's calculated HSL expression.
+  // Keep this equal to the configured tertiary color in quartz.config.yaml.
+  --tertiary: #84a59d;
+}
